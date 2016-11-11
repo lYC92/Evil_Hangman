@@ -5,7 +5,7 @@
 #include <cassert>
 #include <iterator>
 #include <algorithm>
-#include <stdlib.h>
+//#include <stdlib.h>
 
 using namespace std;
 
@@ -122,6 +122,24 @@ public:
 };
 
 
+void analysis(game &hangman, char letter) {
+    size_t sizeBefore = hangman.dictionary.size();
+    for (auto itr = hangman.dictionary.begin(); itr != hangman.dictionary.end(); ) {
+        size_t found = itr->find(letter);
+        if (found != string::npos)
+            hangman.dictionary.erase(itr);
+        else
+            itr++;
+    }
+    size_t sizeAfter = hangman.dictionary.size();
+
+    if (sizeBefore == sizeAfter) {
+
+    }
+
+}
+
+
 void SelectWords(game &hangman) {
     cout << "Guess a letter: ";
     string temp = Getline();
@@ -130,10 +148,9 @@ void SelectWords(game &hangman) {
     hangman.pushGuessed(letter);
     hangman.setRemainChance(hangman.getRemainChance() - 1);
 
-    remove_if(hangman.dictionary.begin(), hangman.dictionary.end(), containLetter(letter));
+//    remove_if(hangman.dictionary.begin(), hangman.dictionary.end(), containLetter(letter));
 
-    hangman.setCurrentWord();
-
+    analysis(hangman, letter);
 
 }
 
