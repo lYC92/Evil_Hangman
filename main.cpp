@@ -39,7 +39,6 @@ private:
     size_t remainChance;
     vector<char> guessedLetters;    // e.g. "c"
     int wordRemain;         // e.g. 100
-
     string currentWord;     // e.g. "---a---e--"
 
 public:
@@ -126,15 +125,6 @@ void analysis(game &hangman, char letter) {
         summary[position] = summary[position] + 1;
 
     }
-
-//    for (auto itr = relation.begin(); itr != relation.end(); itr++) {
-//        cout << itr->first << " => " << letter << " occur at " ;
-//        for (auto itr2 = itr->second.first.begin(); itr2 != itr->second.first.end(); itr2++) {
-//            cout << *itr2 << " ";
-//        }
-//        cout << "total: " << itr->second.second;
-//        cout << endl;
-//    }
 
     auto itrInitial = relation.begin();
     vector<size_t> maxIndx = itrInitial->second.first;
