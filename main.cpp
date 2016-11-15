@@ -1,11 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <set>
 #include <cassert>
 #include <iterator>
 #include <algorithm>
-//#include <stdlib.h>
+#include <map>
 
 using namespace std;
 
@@ -32,26 +31,25 @@ void LoadDic(vector<string> &dic) {
     assert(input.is_open());
     istream_iterator<string> eos;
     copy(istream_iterator<string>(input), eos, inserter(dic, dic.begin()));
-//    copy(dic.begin(),dic.end(),ostream_iterator<string>(cout,"\n"));
 }
 
 class game {
 private:
     size_t wordLength;
     size_t remainChance;
-    vector<char> guessedLetters;
-    int wordRemain;
+    vector<char> guessedLetters;    // e.g. "c"
+    int wordRemain;         // e.g. 100
 
-    string currentWord;
+    string currentWord;     // e.g. "---a---e--"
 
 public:
     vector<string> dictionary;
-
+//    map<string, vector<int>> relation;
 
     game() {
         LoadDic(dictionary);
         inputWordLength();
-        remainChance = wordLength;
+        remainChance = wordLength * 10;
         setWordRemain(LengthSelect(wordLength,dictionary));
 
         string temp;
@@ -81,15 +79,13 @@ public:
     int getWordRemain () { return wordRemain; }
     void setWordRemain (int input) {wordRemain = input;}
 
-    void inputWordLength ();
+    void inputWordLength () {
+        cout << "Please input word length: ";
+        cin >> wordLength;
+        string dummy;
+        getline(cin,dummy);
+    }
 };
-
-void game::inputWordLength() {
-    cout << "Please input word length: ";
-    cin >> wordLength;
-    string dummy;
-    getline(cin,dummy);
-}
 
 
 void PrintOut (game &hangman) {
@@ -109,49 +105,78 @@ string Getline() {
     return a.c_str();
 }
 
-class containLetter
-{
-    char letter;
-public:
-    containLetter(char letter) : letter(letter) {}
-
-    bool operator()(string input) {
-        return input.find(letter);
-    }
-
-};
-
 
 void analysis(game &hangman, char letter) {
-    size_t sizeBefore = hangman.dictionary.size();
-    for (auto itr = hangman.dictionary.begin(); itr != hangman.dictionary.end(); ) {
-        size_t found = itr->find(letter);
-        if (found != string::npos)
-            hangman.dictionary.erase(itr);
-        else
-            itr++;
-    }
-    size_t sizeAfter = hangman.dictionary.size();
+// this will update hangman.currentWord
+    map<string, pair<vector<size_t>,size_t>> relation ;
 
-    if (sizeBefore == sizeAfter) {
+    map<vector<size_t>,size_t> summary;
+
+    for(auto itr = hangman.dictionary.begin(); itr != hangman.dictionary.end(); itr++) {
+        string word = *itr;
+        vector<size_t> position;
+
+        size_t pos = word.find(letter,0);
+        while (pos != string::npos) {
+            position.push_back(pos);
+            pos = word.find(letter,pos+1);
+        }
+        relation[word] = make_pair(position,position.size());
+
+        summary[position] = summary[position] + 1;
 
     }
+
+//    for (auto itr = relation.begin(); itr != relation.end(); itr++) {
+//        cout << itr->first << " => " << letter << " occur at " ;
+//        for (auto itr2 = itr->second.first.begin(); itr2 != itr->second.first.end(); itr2++) {
+//            cout << *itr2 << " ";
+//        }
+//        cout << "total: " << itr->second.second;
+//        cout << endl;
+//    }
+
+    auto itrInitial = relation.begin();
+    vector<size_t> maxIndx = itrInitial->second.first;
+    for (auto itr = summary.begin(); itr != summary.end(); itr++) {
+        if (itr->second > summary[maxIndx])
+            maxIndx = itr->first;
+    }
+    cout << "max chances is for " << letter << " is ";
+    copy(maxIndx.begin(),maxIndx.end(),ostream_iterator<size_t>(cout," "));
+    cout << endl;
+
+    hangman.dictionary.clear();
+    for (auto itr = relation.begin(); itr != relation.end(); ++itr) {
+        if (itr->second.first == maxIndx)
+            hangman.dictionary.push_back(itr->first);
+    }
+
+    for (auto itr = maxIndx.begin(); itr != maxIndx.end(); ++itr) {
+        string temp = hangman.getCurrentWord();
+        temp[*itr] = letter;
+        hangman.setCurrentWord(temp);
+    }
+
+    copy(hangman.dictionary.begin(),hangman.dictionary.end(),ostream_iterator<string>(cout, "\n"));
 
 }
 
 
 void SelectWords(game &hangman) {
-    cout << "Guess a letter: ";
-    string temp = Getline();
-    char letter = temp[0];
-//    cout << letter <<endl;
+    char letter;
+    do {
+        cout << "Guess a letter (not guessed one): ";
+        string temp = Getline();
+        letter = temp[0];
+    }while( find(hangman.start(), hangman.final(), letter) != hangman.final());
+
+//    update guessed letter and remain chances
     hangman.pushGuessed(letter);
     hangman.setRemainChance(hangman.getRemainChance() - 1);
 
-//    remove_if(hangman.dictionary.begin(), hangman.dictionary.end(), containLetter(letter));
-
     analysis(hangman, letter);
-
+    hangman.setWordRemain(hangman.dictionary.size());
 }
 
 int main() {
@@ -160,9 +185,14 @@ int main() {
 
     while(hangman.getRemainChance()) {
         SelectWords(hangman);
-
-//        system("CLS");
         PrintOut(hangman);
+        if (hangman.getWordRemain() == 1) {
+            cout << "You win!" << endl;
+            break;
+        }
+        if (hangman.getRemainChance() == 0)
+            cout << "You lose." << endl;
     }
+
     return 0;
 }
